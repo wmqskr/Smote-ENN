@@ -1,11 +1,11 @@
 %
-function [PPT1,PPT2] =AAC()
+function [PPT1, PPT2] = AAC()
 clear;clc;
 [hp positive]=fastaread('1360p_s.txt');%trainpositive.txt
 Np=length(positive);%number of positive samples
 M=length(positive{1,1});
 x=(M+1)/2;
-%中间位置的“T”去掉
+% Remove the "T" at the middle position
 for i=1:Np
    positive{1,i}(x)='';
   %  s=positive{1,i};
@@ -13,7 +13,7 @@ for i=1:Np
 end
 [hn negative]=fastaread('1336n_s.txt');
 Nn=length(negative);%number of negative samples
-%中间位置的“T”去掉
+% Remove the "T" at the middle position
 for i=1:Nn
    negative{1,i}(x)='';
   %  s=positive{1,i};
@@ -49,27 +49,25 @@ end
 dlmwrite('PPT1.txt', PPT1, 'delimiter', '\t');
 dlmwrite('PPT2.txt', PPT2, 'delimiter', '\t');
 
-% 读取txt文件
+% Read the txt file
 data = readtable('PPT1.txt', 'Delimiter', '\t');
 data1 = readtable('PPT2.txt', 'Delimiter', '\t');
-% 创建'label'列并赋值为"1"
+% Create a 'label' column and assign the value as "1"
 data.label = repmat("1", height(data), 1);
-% 创建'label'列并赋值为"0"
+% Create a 'label' column and assign the value as "0"
 data1.label = repmat("0", height(data1), 1);
-% 将txt数据保存为csv文件
+% Save the txt data as csv files
 writetable(data, '775pos.csv');
 writetable(data1, '17807neg.csv');
 
-%合并特征提取后得到的正负样本数据集
-% 读取第一个CSV文件
+% Merge the positive and negative sample datasets extracted after feature extraction
+% Read the first CSV file
 data1 = readtable('775pos.csv');
-% 读取第二个CSV文件
+% Read the second CSV file
 data2 = readtable('17807neg.csv');
-% 合并两个数据表
+% Merge the two data tables
 mergedData = [data1; data2];
-% 将合并后的数据保存为新的 CSV 文件
+% Save the merged data as a new CSV file
 writetable(mergedData, 'AAC_test.csv');
-%程序结束
+% Program ends
 disp('over');
-
-

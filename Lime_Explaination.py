@@ -5,45 +5,45 @@ from sklearn.metrics import confusion_matrix, accuracy_score, matthews_corrcoef,
 from lime.lime_tabular import LimeTabularExplainer
 import numpy as np
 
-# 读取 CSV 数据集
+# Read the CSV dataset
 df = pd.read_csv('./Data/Processed_Data/DR_SMOTE_ENN.csv')
 
-# 假设最后一列是标签，其余列是特征
+# Assume the last column is the label, and the remaining columns are features
 X = df.iloc[:, :-1].values
 y = df.iloc[:, -1].values
 
-# 十折交叉验证
+# Ten-fold cross-validation
 kf = KFold(n_splits=10, shuffle=True, random_state=1)
 
-# 存储结果
+# Store the results
 sn_list = []
 sp_list = []
 acc_list = []
 mcc_list = []
 auc_list = []
 
-# 初始化 LIME 解释器
+# Initialize the LIME explainer
 explainer = LimeTabularExplainer(X, mode='classification', feature_names=df.columns[:-1], class_names=['0', '1'])
 
 for train_index, test_index in kf.split(X):
     X_train, X_test = X[train_index], X[test_index]
     y_train, y_test = y[train_index], y[test_index]
 
-    # 定义分类器
+    # Define classifiers
     rfc = RandomForestClassifier(n_estimators=170, random_state=1)
     gbc = GradientBoostingClassifier(n_estimators=580, random_state=1)
     rfc1 = RandomForestClassifier(n_estimators=200, random_state=1)
 
-    # 创建投票集成分类器
+    # Create a voting ensemble classifier
     ensemble = VotingClassifier(estimators=[('rfc', rfc), ('gbc', gbc), ('rfc1', rfc1)], voting='soft')
 
-    # 训练集成分类器
+    # Train the ensemble classifier
     ensemble.fit(X_train, y_train)
 
-    # 在测试集上预测概率
+    # Predict probabilities on the test set
     ensemble_probabilities = ensemble.predict_proba(X_test)[:, 1]
 
-    # 计算评估指标
+    # Calculate evaluation metrics
     tn, fp, fn, tp = confusion_matrix(y_test, ensemble_probabilities.round()).ravel()
     sn = tp / (tp + fn)  # Sensitivity or Recall
     sp = tn / (tn + fp)  # Specificity
@@ -51,7 +51,7 @@ for train_index, test_index in kf.split(X):
     mcc = matthews_corrcoef(y_test, ensemble_probabilities.round())
     auc = roc_auc_score(y_test, ensemble_probabilities)
 
-    # 将结果添加到列表中
+    # Append the results to the lists
     sn_list.append(sn)
     sp_list.append(sp)
     acc_list.append(acc)
@@ -60,14 +60,14 @@ for train_index, test_index in kf.split(X):
 
     print(f"sn:{sn}, sp:{sp}, acc:{acc}, mcc:{mcc}, auc:{auc}")
 
-    # 选择一个样本进行解释
-    sample_index = 0  # 选择第一个样本
+    # Choose a sample for explanation
+    sample_index = 0  # Choose the first sample
     exp = explainer.explain_instance(X_test[sample_index], ensemble.predict_proba, num_features=len(df.columns[:-1]))
     exp.show_in_notebook(show_table=True, show_all=False)
-    # 保存解释结果到HTML文件
+    # Save the explanation results to an HTML file
     exp.save_to_file(f'lime_explanation_fold_{len(sn_list)}.html')
 
-# 计算平均值和标准差
+# Calculate the mean and standard deviation
 print(f'Sensitivity (SN): {np.mean(sn_list):.4f} ± {np.std(sn_list):.4f}')
 print(f'Specificity (SP): {np.mean(sp_list):.4f} ± {np.std(sp_list):.4f}')
 print(f'Accuracy (ACC): {np.mean(acc_list):.4f} ± {np.std(acc_list):.4f}')
